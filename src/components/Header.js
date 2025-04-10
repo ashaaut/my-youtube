@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toggleMenu } from "../redux/appSlice";
 import { YOUTUBE_SEARCH_API } from "../utils/constants";
+import { cacheResults } from "../redux/searchSlice";
 const Header = () => {
   const dispatch = useDispatch();
+  const searchCache = useSelector((store) => store.search);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions,setShowSuggestions]=useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => {
-      getSearchSuggestions();
+      if (searchCache[searchQuery]) {
+        setSuggestions(searchCache[searchQuery]);
+      } else {
+        getSearchSuggestions();
+      }
     }, 200);
 
     return () => {
@@ -21,6 +27,12 @@ const Header = () => {
     const data = await fetch(YOUTUBE_SEARCH_API + searchQuery);
     const suggestedData = await data.json();
     setSuggestions(suggestedData[1]);
+
+    dispatch(
+      cacheResults({
+        [searchQuery]: suggestedData[1],
+      })
+    );
   };
   const toggleSideBar = () => {
     dispatch(toggleMenu());
@@ -49,8 +61,8 @@ const Header = () => {
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={()=>setShowSuggestions(true)}
-            onBlur={()=>setShowSuggestions(false)}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setShowSuggestions(false)}
           ></input>
           <button className="border border-gray-300  px-6 py-2 bg-gray-100 rounded-r-full">
             🔍
@@ -61,7 +73,7 @@ const Header = () => {
             src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3gMgzJuzPVhI7PKimRh2Qj9zVnY-HNHjsvmK3ITW9_m3JoV4F863dksQAU9OBqo7lkmg&usqp=CAU"
           ></img>
         </div>
-        {showSuggestions && suggestions.length>0&& (
+        {showSuggestions && suggestions.length > 0 && (
           <div className="absolute bg-white w-[30rem] px-5 py-2 mx-44 rounded-xl my-2 shadow-lg border border-gray-200">
             <ul>
               {suggestions.map((suggestion) => (
